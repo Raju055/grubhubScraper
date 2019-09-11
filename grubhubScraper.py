@@ -3,20 +3,6 @@ import re, csv, time, json, requests, unicodedata
 auth_token = ""
 
 
-def remSpCh(s):
-    s = unicodedata.normalize('NFKD', s).encode('ascii', 'ignore')
-    return ''.join([i for i in s if ord(i) < 128])
-
-
-def isRestaurantDeliveryOrPickup(delivery, pickup):
-    if delivery and pickup:
-        return 'Both'
-    elif delivery:
-        return 'Delivery Only'
-    else:
-        return 'Pickup Only'
-
-
 def main():
     output_file = 'result_nutritionix.csv'
     data_to_file = open(output_file, 'w', newline='')
@@ -61,8 +47,8 @@ def main():
                 'sec-fetch-mode': "cors",
                 'sec-fetch-site': "same-origin",
                 'user-agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/76.0.3809.132 Safari/537.36",
-                'x-app-id': "f1a5c4e4",
-                'x-app-key': "5be93f976af68dd906a532a857421157",
+                'x-app-id': "ff0ccea8",
+                'x-app-key': "605660a17994344157a78f518a111eda",
                 'cache-control': "no-cache",
                 'postman-token': "cdd9512f-4ad6-07f1-3fcd-09fdbe6ccb8a"
             }
@@ -71,57 +57,73 @@ def main():
             datainstant = responseinstant.text
             parsedinstant = json.loads(datainstant)
 
-            parsedinstant['common']
-            url = "https://d1gvlspmcma3iu.cloudfront.net/brands-restaurant.json.gz"
-            response = requests.get(url)
-            data = response.text
-            parsed = json.loads(data)
+            for _data in parsedinstant['common']:
+                headers = {
+                    'x-app-id': "ff0ccea8",
+                    'x-app-key': "605660a17994344157a78f518a111eda",
+                    'x-remote-user-id': "7a43c5ba-50e7-44fb-b2b4-bbd1b7d22632",
+                    'Content-Type': "application/x-www-form-urlencoded",
 
-            for _data in parsed:
-                urlbrand = "https://www.nutritionix.com/nixapi/brands/" + _data['id'] + "/items/1?limit=2000&search="
-                responsebrand = requests.get(urlbrand)
-                databrand = responsebrand.text
-                parsedbrand = json.loads(databrand)
-                for _databrand in parsedbrand["items"]:
-                    try:
-                        numberrecords += 1
-                        print(str(numberrecords) + " ]Brand: " + _data["name"] + ", Food :" + _databrand["item_name"])
-                        urlfood = "https://www.nutritionix.com/nixapi/items/" + _databrand["item_id"]
-                        responsefood = requests.get(urlfood)
-                        datafood = responsefood.text
-                        parsedfood = json.loads(datafood)
+                }
 
-                        Restaurant = '"' + _data['name'] + '"'
-                        Food_Item = '"' + parsedfood['item_name'] + '"'
-                        Serving_Size = str(parsedfood['serving_qty']) + " " + str(parsedfood['serving_unit'])
-                        if parsedfood['metric_qty'] != "":
-                            Serving_Size = '"' + Serving_Size + " ( " + str(parsedfood['metric_qty']) + " " + str(
-                                parsedfood['metric_unit']) + " )" + '"'
+                url = 'https://trackapi.nutritionix.com/v2/natural/nutrients'
+                body = {
+                    'query': _data['tag_name'],
+                    'timezone': 'US/Eastern',
+                }
+                responsefood = requests.request("POST", url, data=body, headers=headers)
+                datafood = responsefood.text
+                parsedfoodsdetails = json.loads(datafood)
+                try:
+                    for parsedfood in parsedfoodsdetails['foods']:
+                        try:
+                            numberrecords += 1
+                            print(str(numberrecords) + " ]Brand: " + _data["tag_name"])
+                            Restaurant = parsedfood['brand_name']
+                            Food_Item = parsedfood['food_name']
+                            Serving_Size = str(parsedfood['serving_qty']) + " " + str(parsedfood['serving_unit'])
+                            if parsedfood['serving_weight_grams'] != "":
+                                Serving_Size = Serving_Size + " ( " + str(parsedfood['serving_weight_grams']) + "g )"
+                            Calories = round(parsedfood['nf_calories'], 1)
+                            Calories_from_Fat = int(parsedfood['nf_total_fat']) * 9
+                            Total_Fat = round(parsedfood['nf_total_fat'], 1)
+                            Saturated_Fat = round(parsedfood['nf_saturated_fat'], 1)
+                            Cholesterol = round(parsedfood['nf_cholesterol'], 1)
+                            Sodium = round(parsedfood['nf_sodium'], 1)
+                            Total_Carbohydrates = round(parsedfood['nf_total_carbohydrate'], 1)
+                            Dietary_Fiber = round(parsedfood['nf_dietary_fiber'], 1)
+                            Sugars = round(parsedfood['nf_sugars'], 1)
+                            Proteins = round(parsedfood['nf_protein'], 1)
+                            Vitamin_A = ''
+                            Vitamin_C = ''
+                            Calcium = ''
+                            Iron = ''
+                            Trans_Fat = ''
 
-                        Calories = parsedfood['calories']
-                        Calories_from_Fat = int(parsedfood['total_fat']) * 9
-                        Total_Fat = parsedfood['total_fat']
-                        Saturated_Fat = parsedfood['saturated_fat']
-                        Trans_Fat = parsedfood['trans_fat']
-                        Cholesterol = parsedfood['cholesterol']
-                        Sodium = parsedfood['sodium']
-                        Total_Carbohydrates = parsedfood['total_carb']
-                        Dietary_Fiber = parsedfood['dietary_fiber']
-                        Sugars = parsedfood['sugars']
-                        Proteins = parsedfood['protein']
-                        Vitamin_A = parsedfood['vitamin_a']
-                        Vitamin_C = parsedfood['vitamin_c']
-                        Calcium = parsedfood['calcium_dv']
-                        Iron = parsedfood['iron_dv']
+                            for _parsedfooddata in parsedfood['full_nutrients']:
+                                if _parsedfooddata['attr_id'] == 318:
+                                    Vitamin_A = _parsedfooddata['value']
+                                if _parsedfooddata['attr_id'] == 401:
+                                    Vitamin_C = _parsedfooddata['value']
+                                if _parsedfooddata['attr_id'] == 301:
+                                    Calcium = _parsedfooddata['value']
+                                if _parsedfooddata['attr_id'] == 303:
+                                    Iron = _parsedfooddata['value']
+                                if _parsedfooddata['attr_id'] == 605:
+                                    Trans_Fat = _parsedfooddata['value']
 
-                        csv_writer.writerow(
-                            [Restaurant, Food_Item, Serving_Size, Calories, Calories_from_Fat, Total_Fat, Saturated_Fat,
-                             Trans_Fat, Cholesterol, Sodium, Total_Carbohydrates, Dietary_Fiber, Sugars, Proteins,
-                             Vitamin_A, Vitamin_C, Calcium, Iron])
-                    except Exception:
-                        pass  # or you could use 'continue'
+                            csv_writer.writerow(
+                                [Restaurant, Food_Item, Serving_Size, Calories, Calories_from_Fat, Total_Fat,
+                                 Saturated_Fat,
+                                 Trans_Fat, Cholesterol, Sodium, Total_Carbohydrates, Dietary_Fiber, Sugars, Proteins,
+                                 Vitamin_A, Vitamin_C, Calcium, Iron])
+                        except Exception:
+                            pass  # or you could use 'continue'
+                except Exception:
+                    pass  # or you could use 'continue'
             data_to_file.close()
 
 
 if __name__ == '__main__':
     main()
+
