@@ -36,7 +36,7 @@ def main(restaurantsnumber, ServingSize):
     data_to_file = open(output_file, 'w', newline='')
     csv_writer = csv.writer(data_to_file, delimiter=",")
     csv_writer.writerow(
-        ["Restaurant", "Seamless Food Item Main", "Seamless Food Item Sub", "Nutritionix Food Item", "Serving Size",
+        ["Restaurant", "Seamless Food Item Main","Menu List Category", "Seamless Food Item Sub", "Nutritionix Food Item", "Serving Size",
          "Calories", "Calories from Fat", "Total Fat", "Saturated Fat",
          "Trans Fat", "Cholesterol", "Sodium", "Total Carbohydrates", "Dietary Fiber", "Sugars", "Proteins",
          "Vitamin A", "Vitamin C", "Calcium", "Iron"
@@ -79,17 +79,18 @@ def main(restaurantsnumber, ServingSize):
                 name = menuname['name']
                 with open('commonfood.csv', newline='') as csvfile:
                     spamwriter = csv.DictReader(csvfile)
-                    mostsimilarc = 0
-                    mostsimilarn = 0
+                    mostsimilarcs = 0
+                    mostsimilarns = 0
                     for rowdata in spamwriter:
-                        mostsimilarn = fuzz.ratio(rowdata["Food Item"].lower(), name.lower())
-                        if mostsimilarn > mostsimilarc:
-                            mostsimilarc = mostsimilarn
+                        mostsimilarns = fuzz.ratio(rowdata["Food Item"].lower(), name.lower())
+                        if mostsimilarns > mostsimilarcs:
+                            mostsimilarcs = mostsimilarns
                             row1 = rowdata
 
                     numberrecords += 1
                     seamless_Food_ItemmMain = name
                     seamless_Food_ItemmSub = name
+                    Menu_List_Category=row1["Food Item"]
                     Restaurant = json_text['restaurant']['name']
                     nutritionix_Food_Item = row1["Food Item"]
                     Serving_Size = row1["Serving Size"]
@@ -109,7 +110,7 @@ def main(restaurantsnumber, ServingSize):
                     Calcium = row1["Calcium"]* ServingSize
                     Iron = row1["Iron"]* ServingSize
                     csv_writer.writerow(
-                        [Restaurant, seamless_Food_ItemmMain, seamless_Food_ItemmSub, nutritionix_Food_Item,
+                        [Restaurant, seamless_Food_ItemmMain,Menu_List_Category, seamless_Food_ItemmSub, nutritionix_Food_Item,
                          Serving_Size, Calories, Calories_from_Fat, Total_Fat,
                          Saturated_Fat,
                          Trans_Fat, Cholesterol, Sodium, Total_Carbohydrates, Dietary_Fiber, Sugars, Proteins,
@@ -117,28 +118,27 @@ def main(restaurantsnumber, ServingSize):
                     print(str(numberrecords) + " ]food_name: " + nutritionix_Food_Item)
                 csvfile.close()
 
-                with open('commonfood.csv', newline='') as csvfile2:
-                    spamwriter2 = csv.DictReader(csvfile2)
-                    spamwriter3 = spamwriter2
-                    url1 = "https://api-gtm.grubhub.com/restaurants/" + str( restaurantsnumber) + "/menu_items/" + menuname[
-                        'id'] + "?time=1568719007454&orderType=standard&version=4"
-                    try:
-                        json_text1 = json.loads(requests.get(url1, headers=headers).text)
-                    except:
-                        r = requests.post(auth_url, data=json.dumps(auth_payload), headers=headers)
-                        auth_token1 = "Bearer " + json.loads(r.text)['session_handle']['access_token']
-                        headers1 = {'Accept': 'application/json', 'Authorization': auth_token1}
-                        json_text1 = json.loads(requests.get(url1, headers=headers).text)
-                    for _databrand in json_text1["choice_category_list"]:
-                        for _category_list in _databrand["choice_option_list"]:
-                            try:
+                url1 = "https://api-gtm.grubhub.com/restaurants/" + str( restaurantsnumber) + "/menu_items/" + menuname[
+                    'id'] + "?time=1568719007454&orderType=standard&version=4"
+                try:
+                    json_text1 = json.loads(requests.get(url1, headers=headers).text)
+                except:
+                    r = requests.post(auth_url, data=json.dumps(auth_payload), headers=headers)
+                    auth_token1 = "Bearer " + json.loads(r.text)['session_handle']['access_token']
+                    headers1 = {'Accept': 'application/json', 'Authorization': auth_token1}
+                    json_text1 = json.loads(requests.get(url1, headers=headers).text)
+                for _databrand in json_text1["choice_category_list"]:
+                    for _category_list in _databrand["choice_option_list"]:
+                        try:
+                            with open('commonfood.csv', newline='') as csvfile2:
+                                spamwriter2 = csv.DictReader(csvfile2)
                                 itemextra = _category_list['description'].replace('Add', '').strip()
                                 itemextra = itemextra.replace('Remove', '')
                                 itemextra = itemextra.replace('Extra', '')
 
-                                mostsimilarc = 0.0
-                                mostsimilarn = 0.0
-                                for rowdataItems in spamwriter3:
+                                mostsimilarc = 0
+                                mostsimilarn = 0
+                                for rowdataItems in spamwriter2:
                                     mostsimilarn =fuzz.ratio(rowdataItems["Food Item"].lower(), itemextra.lower())
                                     if mostsimilarn > mostsimilarc:
                                         mostsimilarc = mostsimilarn
@@ -147,6 +147,7 @@ def main(restaurantsnumber, ServingSize):
                                 numberrecords += 1
                                 seamless_Food_ItemmMain = name
                                 seamless_Food_ItemmSub = itemextra
+                                Menu_List_Category = _databrand['name']
                                 Restaurant = json_text['restaurant']['name']
                                 nutritionix_Food_Item = row["Food Item"]
                                 Serving_Size = row["Serving Size"]
@@ -166,7 +167,7 @@ def main(restaurantsnumber, ServingSize):
                                 Calcium = row["Calcium"]* ServingSize
                                 Iron = row["Iron"]* ServingSize
                                 csv_writer.writerow(
-                                    [Restaurant, seamless_Food_ItemmMain, seamless_Food_ItemmSub,
+                                    [Restaurant, seamless_Food_ItemmMain,Menu_List_Category, seamless_Food_ItemmSub,
                                      nutritionix_Food_Item, Serving_Size, Calories, Calories_from_Fat, Total_Fat,
                                      Saturated_Fat,
                                      Trans_Fat, Cholesterol, Sodium, Total_Carbohydrates, Dietary_Fiber, Sugars,
@@ -174,12 +175,12 @@ def main(restaurantsnumber, ServingSize):
                                      Vitamin_A, Vitamin_C, Calcium, Iron])
                                 print(str(
                                     numberrecords) + " ]food name Main: " + seamless_Food_ItemmMain + ", #food name sub: " + seamless_Food_ItemmSub)
+                                csvfile2.close()
+                        except Exception:
+                            print(
+                                str(numberrecords) + "Error ]food name Main: " + seamless_Food_ItemmMain + ", #food name sub: " + seamless_Food_ItemmSub)
+                            pass  # or you could use 'continue'
 
-                            except Exception:
-                                print(
-                                    str(numberrecords) + "Error ]food name Main: " + seamless_Food_ItemmMain + ", #food name sub: " + seamless_Food_ItemmSub)
-                                pass  # or you could use 'continue'
-                csvfile2.close()
             except OSError as err:
                 print("OS error: {0}".format(err))
             except ValueError as err:
@@ -199,4 +200,3 @@ if __name__ == '__main__':
     restaurantsnumber = numRestaurants()
     ServingSize = numServingsize()
     main(restaurantsnumber, ServingSize)
-
